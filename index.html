@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>DOMANI RIDER ACCOUNT MANAGER</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#172033;--muted:#697386;--green:#12834a;--red:#c43d3d;--line:#e5e9f0;--dark:#111827}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:var(--dark);color:#fff;padding:22px 18px 20px}header h1{font-size:20px;margin:0 0 5px;letter-spacing:.3px}header p{margin:0;color:#cbd5e1;font-size:13px}
+main{max-width:760px;margin:auto;padding:16px 14px 40px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 2px 8px #11182708}
+.card small{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.amount{font-size:23px;font-weight:750;overflow-wrap:anywhere}.profit{grid-column:1/-1;background:#eaf7ef;border-color:#ccebd7}.profit .amount{color:var(--green)}
+h2{font-size:17px;margin:0 0 13px}.panel{margin-bottom:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+button{border:0;border-radius:12px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer}
+.tab{background:#e5e9f0;color:#334155}.tab.active{background:var(--dark);color:white}
+label{display:block;font-size:13px;font-weight:650;margin:11px 0 6px}
+input,select{width:100%;padding:13px;border:1px solid #d8dee8;border-radius:10px;font:inherit;background:#fff;color:var(--ink)}
+.primary{background:#12834a;color:#fff;width:100%;margin-top:15px}.secondary{background:#e8edf4;color:#253047}.danger{background:#fff0f0;color:#a52828}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.entry{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.entry:last-child{border:0}.entry strong{display:block}.entry small{color:var(--muted)}
+.income{color:var(--green);font-weight:750}.expense{color:var(--red);font-weight:750}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:10px}
+</style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+<header><h1>🏍️ DOMANI RIDER</h1><p>ACCOUNT MANAGER · KENYAN SHILLINGS (KES)</p></header>
+<main>
+  <div class="cards">
+    <div class="card"><small>Today's income</small><div class="amount" id="todayIncome">KSh 0</div></div>
+    <div class="card"><small>Today's expenses</small><div class="amount" id="todayExpense">KSh 0</div></div>
+    <div class="card profit"><small>Today's net balance</small><div class="amount" id="todayProfit">KSh 0</div></div>
+    <div class="card"><small>This month's income</small><div class="amount" id="monthIncome">KSh 0</div></div>
+    <div class="card"><small>This month's expenses</small><div class="amount" id="monthExpense">KSh 0</div></div>
+    <div class="card"><small>This month's net balance</small><div class="amount" id="monthProfit">KSh 0</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="incomeTab" onclick="setType('income')">＋ Add income</button>
+    <button class="tab" id="expenseTab" onclick="setType('expense')">－ Add expense</button>
+  </div>
+
+  <section class="panel">
+    <h2 id="formTitle">Record income</h2>
+    <form id="entryForm">
+      <label for="amount">Amount (KSh)</label>
+      <input id="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 1500" required>
+      <label for="category">Category</label>
+      <select id="category"></select>
+      <label for="date">Date</label>
+      <input id="date" type="date" required>
+      <label for="details">Note (optional)</label>
+      <input id="details" type="text" maxlength="80" placeholder="e.g. morning trips / puncture repair">
+      <button class="primary" type="submit">Save transaction</button>
+    </form>
+    <p class="note">Your entries are saved in this browser on this phone. Keep a backup using “Export records” below.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Transaction history</h2>
+    <div class="row">
+      <label style="flex:1">Show month
+        <input id="filterMonth" type="month">
+      </label>
+      <button class="secondary" style="align-self:end" onclick="clearFilter()">All records</button>
+    </div>
+    <div id="history"></div>
+  </section>
+
+  <section class="panel">
+    <h2>⛽ Fuel purchase tracker</h2>
+    <form id="fuelForm">
+      <div class="row">
+        <div><label for="fuelLitres">Litres bought</label><input id="fuelLitres" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 1.5" required></div>
+        <div><label for="fuelCost">Amount paid (KSh)</label><input id="fuelCost" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 300" required></div>
+      </div>
+      <label for="fuelDate">Date</label><input id="fuelDate" type="date" required>
+      <label for="fuelOdo">Odometer reading (km, optional)</label><input id="fuelOdo" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 24850">
+      <label for="fuelStation">Where / note (optional)</label><input id="fuelStation" maxlength="80" placeholder="e.g. petrol station / top-up">
+      <button class="primary" type="submit">Save fuel purchase</button>
+    </form>
+    <div id="fuelSummary" class="note" style="margin-top:12px"></div>
+    <div id="fuelHistory"></div>
+    <p class="note">Each fuel purchase is also added automatically to your expenses, so it is included in your profit calculation. Do not enter the same fuel cost again under general expenses.</p>
+  </section>
+
+  <section class="panel">
+    <h2>🛣️ Daily distance tracker</h2>
+    <form id="distanceForm">
+      <div class="row">
+        <div><label for="odoStart">Starting odometer (km)</label><input id="odoStart" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 24500" required></div>
+        <div><label for="odoEnd">Ending odometer (km)</label><input id="odoEnd" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 24585" required></div>
+      </div>
+      <label for="distanceDate">Date</label><input id="distanceDate" type="date" required>
+      <label for="distanceNote">Note (optional)</label><input id="distanceNote" maxlength="80" placeholder="e.g. busy day / town trips">
+      <button class="primary" type="submit">Save daily distance</button>
+    </form>
+    <div id="distanceSummary" class="note" style="margin-top:12px"></div>
+    <div id="distanceHistory"></div>
+  </section>
+
+  <section class="panel">
+    <h2>🔧 Service planner</h2>
+    <form id="serviceForm">
+      <label for="serviceDate">Next service due date</label><input id="serviceDate" type="date" required>
+      <label for="serviceKm">Next service odometer reading (km, optional)</label><input id="serviceKm" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 25000">
+      <label for="serviceNote">Service reminder note</label><input id="serviceNote" maxlength="100" placeholder="e.g. oil change, chain and brakes">
+      <button class="primary" type="submit">Save service reminder</button>
+    </form>
+    <div id="serviceStatus" class="note" style="margin-top:12px"></div>
+    <h2 style="margin-top:16px">Service history</h2>
+    <form id="serviceDoneForm">
+      <label for="doneDate">Date service was completed</label><input id="doneDate" type="date" required>
+      <label for="doneType">Work done</label><input id="doneType" maxlength="100" placeholder="e.g. engine oil and filter" required>
+      <label for="doneCost">Service cost (KSh)</label><input id="doneCost" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 800" required>
+      <label for="doneOdo">Odometer reading (km, optional)</label><input id="doneOdo" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 24800">
+      <button class="primary" type="submit">Record completed service</button>
+    </form>
+    <div id="serviceHistory"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Backup and records</h2>
+    <div class="actions">
+      <button class="secondary" onclick="exportData()">Export records</button>
+      <button class="secondary" onclick="document.getElementById('importFile').click()">Import backup</button>
+      <input id="importFile" type="file" accept="application/json,.json" hidden onchange="importData(event)">
+    </div>
+    <p class="note">Export a backup regularly, especially before changing phones or clearing browser data.</p>
+    <button class="danger" style="width:100%;margin-top:8px" onclick="deleteAll()">Delete all records</button>
+  </section>
+  <footer>DOMANI RIDER · Your records stay on this device unless you export or share them.</footer>
+</main>
+<script>
+const KEY='domani_rider_records_v1';
+let records=[], distances=[], serviceHistory=[], fuelPurchases=[], servicePlan=null;
+let currentType='income';
+try{records=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(records))records=[]}catch(e){records=[]}
+try{distances=JSON.parse(localStorage.getItem(KEY+'_distances')||'[]');if(!Array.isArray(distances))distances=[]}catch(e){distances=[]}
+try{fuelPurchases=JSON.parse(localStorage.getItem(KEY+'_fuel')||'[]');if(!Array.isArray(fuelPurchases))fuelPurchases=[]}catch(e){fuelPurchases=[]}
+$('fuelDate').value=today();
+try{serviceHistory=JSON.parse(localStorage.getItem(KEY+'_service_history')||'[]');if(!Array.isArray(serviceHistory))serviceHistory=[]}catch(e){serviceHistory=[]}
+try{servicePlan=JSON.parse(localStorage.getItem(KEY+'_service_plan')||'null')}catch(e){servicePlan=null}
+$('distanceDate').value=today();$('doneDate').value=today();
+const $=id=>document.getElementById(id);
+const money=n=>'KSh '+Number(n||0).toLocaleString('en-KE',{maximumFractionDigits:0});
+const today=()=>new Date().toLocaleDateString('en-CA');
+const monthNow=()=>today().slice(0,7);
+$('date').value=today();$('filterMonth').value=monthNow();
+function save(){localStorage.setItem(KEY,JSON.stringify(records));render()}
+function saveExtra(){
+ localStorage.setItem(KEY+'_distances',JSON.stringify(distances));
+ localStorage.setItem(KEY+'_fuel',JSON.stringify(fuelPurchases));
+ localStorage.setItem(KEY+'_service_history',JSON.stringify(serviceHistory));
+ localStorage.setItem(KEY+'_service_plan',JSON.stringify(servicePlan));
+ renderExtra();
+}
+function renderExtra(){
+ const d=today(), todayDistance=distances.filter(x=>x.date===d).reduce((a,x)=>a+x.km,0);
+ const monthDistance=distances.filter(x=>x.date.startsWith(monthNow())).reduce((a,x)=>a+x.km,0);
+ const fuelToday=fuelPurchases.filter(x=>x.date===d), fuelMonth=fuelPurchases.filter(x=>x.date.startsWith(monthNow()));
+ const litresToday=fuelToday.reduce((a,x)=>a+Number(x.litres),0), costToday=fuelToday.reduce((a,x)=>a+Number(x.cost),0);
+ const litresMonth=fuelMonth.reduce((a,x)=>a+Number(x.litres),0), costMonth=fuelMonth.reduce((a,x)=>a+Number(x.cost),0);
+ $('fuelSummary').textContent='Today: '+litresToday.toFixed(2)+' L · '+money(costToday)+' | This month: '+litresMonth.toFixed(2)+' L · '+money(costMonth);
+ const fh=[...fuelPurchases].sort((a,b)=>b.date.localeCompare(a.date));
+ $('fuelHistory').innerHTML=fh.length?fh.slice(0,25).map(x=>`<div class="entry"><div><strong>${Number(x.litres).toFixed(2)} litres · ${esc(x.date)}</strong><small>${x.odo!==''?'Odometer: '+Number(x.odo).toLocaleString()+' km':''}${x.note?' · '+esc(x.note):''}</small></div><div class="expense">${money(x.cost)}<br><button class="danger" style="padding:5px 8px;font-size:11px;margin-top:5px" onclick="removeFuel('${x.id}')">Delete</button></div></div>`).join(''):'<div class="empty">No fuel purchases recorded yet.</div>';
+ $('distanceSummary').textContent='Distance today: '+todayDistance.toLocaleString('en-KE')+' km · This month: '+monthDistance.toLocaleString('en-KE')+' km';
+ const dh=[...distances].sort((a,b)=>b.date.localeCompare(a.date));
+ $('distanceHistory').innerHTML=dh.length?dh.slice(0,20).map(x=>`<div class="entry"><div><strong>${esc(x.date)}</strong><small>Odometer: ${Number(x.start).toLocaleString()} → ${Number(x.end).toLocaleString()} km${x.note?' · '+esc(x.note):''}</small></div><div class="income">${Number(x.km).toLocaleString()} km<br><button class="danger" style="padding:5px 8px;font-size:11px;margin-top:5px" onclick="removeDistance('${x.id}')">Delete</button></div></div>`).join(''):'<div class="empty">No distance entries yet.</div>';
+ if(servicePlan){
+   const due=new Date(servicePlan.date+'T00:00:00'), now=new Date(today()+'T00:00:00'), days=Math.ceil((due-now)/86400000);
+   let status=days<0?'Service overdue by '+Math.abs(days)+' day(s).':days===0?'Service is due today.':'Next service in '+days+' day(s).';
+   if(servicePlan.km)status+=' Target odometer: '+Number(servicePlan.km).toLocaleString()+' km.';
+   $('serviceStatus').innerHTML='<strong>'+esc(status)+'</strong><br>Due: '+esc(servicePlan.date)+(servicePlan.note?'<br>'+esc(servicePlan.note):'')+' <button class="danger" style="padding:5px 8px;font-size:11px;margin-top:6px" onclick="clearServicePlan()">Clear reminder</button>';
+ }else $('serviceStatus').textContent='No service reminder set. Add your next service date above.';
+ const sh=[...serviceHistory].sort((a,b)=>b.date.localeCompare(a.date));
+ $('serviceHistory').innerHTML=sh.length?sh.slice(0,20).map(x=>`<div class="entry"><div><strong>${esc(x.work)}</strong><small>${esc(x.date)}${x.odo!==''?' · '+Number(x.odo).toLocaleString()+' km':''}</small></div><div class="expense">${money(x.cost)}<br><button class="danger" style="padding:5px 8px;font-size:11px;margin-top:5px" onclick="removeService('${x.id}')">Delete</button></div></div>`).join(''):'<div class="empty">No completed services recorded yet.</div>';
+}
+function removeDistance(id){if(confirm('Delete this distance entry?')){distances=distances.filter(x=>x.id!==id);saveExtra()}}
+function removeService(id){if(confirm('Delete this service record?')){serviceHistory=serviceHistory.filter(x=>x.id!==id);saveExtra()}}
+function clearServicePlan(){if(confirm('Clear the service reminder?')){servicePlan=null;saveExtra()}}
+$('fuelForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const litres=Number($('fuelLitres').value),cost=Number($('fuelCost').value);
+ if(!Number.isFinite(litres)||litres<=0||!Number.isFinite(cost)||cost<=0)return;
+ const id=String(Date.now())+Math.random().toString(16).slice(2);
+ const date=$('fuelDate').value,odo=$('fuelOdo').value,note=$('fuelStation').value.trim();
+ fuelPurchases.push({id,date,litres,cost,odo,note});
+ records.push({id:'fuel-'+id,type:'expense',amount:cost,category:'Fuel',date,details:litres.toFixed(2)+' L'+(note?' · '+note:'') ,fuelId:id});
+ $('fuelLitres').value='';$('fuelCost').value='';$('fuelOdo').value='';$('fuelStation').value='';
+ save();saveExtra();
+});
+function removeFuel(id){
+ if(confirm('Delete this fuel purchase and its linked fuel expense?')){
+   fuelPurchases=fuelPurchases.filter(x=>x.id!==id);
+   records=records.filter(x=>x.fuelId!==id);
+   save();saveExtra();
+ }
+}
+$('distanceForm').addEventListener('submit',e=>{
+ e.preventDefault();const start=Number($('odoStart').value),end=Number($('odoEnd').value);
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<start){alert('Ending odometer must be equal to or greater than the starting reading.');return}
+ const date=$('distanceDate').value;if(distances.some(x=>x.date===date)){if(!confirm('A distance entry already exists for this date. Add another entry?'))return}
+ distances.push({id:String(Date.now())+Math.random().toString(16).slice(2),date,start,end,km:Math.round((end-start)*10)/10,note:$('distanceNote').value.trim()});
+ $('odoStart').value='';$('odoEnd').value='';$('distanceNote').value='';saveExtra();
+});
+$('serviceForm').addEventListener('submit',e=>{
+ e.preventDefault();servicePlan={date:$('serviceDate').value,km:$('serviceKm').value?Number($('serviceKm').value):null,note:$('serviceNote').value.trim()};saveExtra();
+});
+$('serviceDoneForm').addEventListener('submit',e=>{
+ e.preventDefault();serviceHistory.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:$('doneDate').value,work:$('doneType').value.trim(),cost:Number($('doneCost').value),odo:$('doneOdo').value});
+ $('doneType').value='';$('doneCost').value='';$('doneOdo').value='';saveExtra();
+});
+function setType(type){
+ currentType=type;
+ $('incomeTab').classList.toggle('active',type==='income');
+ $('expenseTab').classList.toggle('active',type==='expense');
+ $('formTitle').textContent=type==='income'?'Record income':'Record expense';
+ const opts=type==='income'?['Passenger fare','Delivery','Other income']:['Fuel','Repairs & service','Loan payment','Parking / stage fee','Food / personal','Other expense'];
+ $('category').innerHTML=opts.map(x=>`<option>${x}</option>`).join('');
+}
+function sum(list,type){return list.filter(x=>x.type===type).reduce((a,x)=>a+Number(x.amount),0)}
+function render(){
+ const d=today(),m=monthNow(),dayRows=records.filter(x=>x.date===d),monthRows=records.filter(x=>x.date.startsWith(m));
+ const di=sum(dayRows,'income'),de=sum(dayRows,'expense'),mi=sum(monthRows,'income'),me=sum(monthRows,'expense');
+ $('todayIncome').textContent=money(di);$('todayExpense').textContent=money(de);$('todayProfit').textContent=money(di-de);
+ $('monthIncome').textContent=money(mi);$('monthExpense').textContent=money(me);$('monthProfit').textContent=money(mi-me);
+ const f=$('filterMonth').value;const rows=[...records].filter(x=>!f||x.date.startsWith(f)).sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id));
+ $('history').innerHTML=rows.length?rows.map(x=>`<div class="entry"><div><strong>${esc(x.category)}</strong><small>${esc(x.date)}${x.details?' · '+esc(x.details):''}</small></div><div class="${x.type}">${x.type==='income'?'+':'−'}${money(x.amount)}<br><button class="danger" style="padding:5px 8px;font-size:11px;margin-top:5px" onclick="removeEntry('${x.id}')">Delete</button></div></div>`).join(''):'<div class="empty">No transactions recorded yet.</div>';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('entryForm').addEventListener('submit',e=>{
+ e.preventDefault();const amount=Number($('amount').value);if(!Number.isFinite(amount)||amount<=0)return;
+ records.push({id:String(Date.now())+Math.random().toString(16).slice(2),type:currentType,amount,category:$('category').value,date:$('date').value,details:$('details').value.trim()});
+ $('amount').value='';$('details').value='';save();
+});
+function removeEntry(id){if(confirm('Delete this transaction?')){records=records.filter(x=>x.id!==id);save()}}
+function clearFilter(){$('filterMonth').value='';render()}
+$('filterMonth').addEventListener('change',render);
+function exportData(){
+ const blob=new Blob([JSON.stringify({app:'DOMANI RIDER ACCOUNT MANAGER',version:3,records,distances,fuelPurchases,serviceHistory,servicePlan},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='domani-rider-backup-'+today()+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+ const file=e.target.files[0];if(!file)return;const reader=new FileReader();
+ reader.onload=()=>{try{const obj=JSON.parse(reader.result);const incoming=Array.isArray(obj)?obj:obj.records;if(!Array.isArray(incoming)||!incoming.every(x=>x&&['income','expense'].includes(x.type)&&Number(x.amount)>0&&x.date)){throw Error('Invalid backup')}
+ if(confirm('Import backup? Its transactions, distance logs and service records will be added to your current records.')){records=records.concat(incoming);if(Array.isArray(obj.distances))distances=distances.concat(obj.distances);if(Array.isArray(obj.fuelPurchases))fuelPurchases=fuelPurchases.concat(obj.fuelPurchases);if(Array.isArray(obj.serviceHistory))serviceHistory=serviceHistory.concat(obj.serviceHistory);if(obj.servicePlan)servicePlan=obj.servicePlan;save();saveExtra();alert('Backup imported.')} }catch(err){alert('Could not read that backup file.')} e.target.value=''};
+ reader.readAsText(file);
+}
+function deleteAll(){if(confirm('Delete ALL income, expense, distance and service records? Export a backup first if you need these records.')){records=[];distances=[];fuelPurchases=[];serviceHistory=[];servicePlan=null;save();saveExtra()}}
+setType('income');render();renderExtra();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(err => {
+      console.warn("Offline app setup could not start:", err);
+    });
+  });
+}
+</script>
+</body></html>
